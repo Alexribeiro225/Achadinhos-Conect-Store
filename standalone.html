@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CONECT STORE OFERTAS 2.0 — Achou, gostou, aproveitou!</title>
+  <meta name="description" content="Sua loja especializada em achadinhos, produtos úteis, novidades e ofertas imperdíveis. Conect Store Ofertas." />
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              orange: '#FF681B',
+              'orange-hover': '#e6560e',
+              yellow: '#FFD43B',
+              'yellow-hover': '#e6bd35',
+              black: '#171717',
+              gray: '#F5F5F5',
+            }
+          },
+          boxShadow: {
+            'brand': '0 10px 25px -5px rgba(255, 104, 27, 0.25)',
+            'card-hover': '0 12px 30px rgba(255, 104, 27, 0.15)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Supabase JS Client via CDN -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <!-- React 18 & Babel via CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+      background-color: #F5F5F5;
+      color: #171717;
+    }
+    .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #FF681B; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-[#F5F5F5] min-h-screen flex flex-col selection:bg-[#FF681B] selection:text-white">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Categorias Oficiais
+    const INITIAL_CATEGORIES = [
+      { nome: 'Beleza e cuidados pessoais', slug: 'beleza-e-cuidados-pessoais', icone: 'sparkles' },
+      { nome: 'Casa e cozinha', slug: 'casa-e-cozinha', icone: 'utensils' },
+      { nome: 'Tecnologia e eletrônicos', slug: 'tecnologia-e-eletronicos', icone: 'cpu' },
+      { nome: 'Automotivos', slug: 'automotivos', icone: 'car' },
+      { nome: 'Acessórios e utilidades', slug: 'acessorios-e-utilidades', icone: 'package-check' }
+    ];
+
+    // Produtos em Demonstração (Iniciados como 'pausados' para auditoria e conferência de dados reais)
+    const DEMO_PRODUCTS = [
+      {
+        id: '11111111-1111-4111-a111-111111111111',
+        nome: 'Mini Processador e Triturador Elétrico Recarregável USB 250ml',
+        slug: 'mini-processador-triturador-eletrico-usb',
+        descricao_curta: 'Triture alho, cebola, temperos e legumes em segundos com apenas 1 clique.',
+        descricao_completa: 'O Mini Processador Elétrico Portátil é o achadinho indispensável para a sua cozinha. Com lâminas afiadas em aço inoxidável e acionamento por botão touch, ele tritura temperos, alho, castanhas e vegetais em menos de 10 segundos. Recarregável via USB com bateria de longa duração e corpo lavável impermeável IPX6.',
+        categoria: 'Casa e cozinha',
+        imagens: [
+          'https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?w=800&auto=format&fit=crop&q=80',
+          'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800&auto=format&fit=crop&q=80'
+        ],
+        preco_custo: 22.50,
+        preco_venda: 49.90,
+        preco_anterior: 79.90,
+        margem_estimada: 27.40,
+        link_checkout_kaiross: 'https://kaiross.com/checkout/mini-processador-eletrico-usb?ref=conectstore',
+        status: 'pausado', // Em demonstração até auditoria pelo lojista
+        destaque: true,
+        secao_destaque: 'achadinhos',
+        ordem: 1,
+        etiqueta_oferta: 'ACHADINHO VIRAL',
+        especificacoes: [
+          { chave: 'Capacidade', valor: '250ml' },
+          { chave: 'Alimentação', valor: 'Bateria USB 1200mAh Recarregável' }
+        ],
+        beneficios: [
+          'Economiza tempo no preparo de refeições',
+          'Fácil de desmontar e higienizar'
+        ],
+        cliques: 0
+      },
+      {
+        id: '22222222-2222-4222-a222-222222222222',
+        nome: 'Luminária Sensor de Movimento LED Slim Magnética Recarregável',
+        slug: 'luminaria-sensor-movimento-led-slim',
+        descricao_curta: 'Iluminação inteligente e automática para armários, escadas e guarda-roupas.',
+        descricao_completa: 'Tenha iluminação suave e prática sem quebrar paredes ou passar fios. Esta fita luminária magnética com sensor de presença infravermelho detecta movimentos a até 3 metros e acende automaticamente.',
+        categoria: 'Casa e cozinha',
+        imagens: [
+          'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=800&auto=format&fit=crop&q=80'
+        ],
+        preco_custo: 18.00,
+        preco_venda: 39.90,
+        preco_anterior: 59.90,
+        margem_estimada: 21.90,
+        link_checkout_kaiross: 'https://kaiross.com/checkout/luminaria-sensor-led-slim?ref=conectstore',
+        status: 'pausado',
+        destaque: true,
+        secao_destaque: 'achadinhos',
+        ordem: 2,
+        etiqueta_oferta: 'SUPER PRÁTICO',
+        especificacoes: [{ chave: 'Comprimento', valor: '30 cm' }],
+        beneficios: ['Instalação rápida magnética sem furos'],
+        cliques: 0
+      },
+      {
+        id: '33333333-3333-4333-a333-333333333333',
+        nome: 'Aspirador de Pó Portátil Automotivo e Doméstico Sem Fio 120W Turbo',
+        slug: 'aspirador-portatil-automotivo-sem-fio-turbo',
+        descricao_curta: 'Potência surpreendente de sucção para limpar o carro, teclado, sofás e cantos difíceis.',
+        descricao_completa: 'Mantenha seu automóvel e seu ambiente impecáveis com o aspirador de pó sem fio de alta sucção. Equipado com motor ciclônico de 120W e filtro HEPA lavável.',
+        categoria: 'Automotivos',
+        imagens: [
+          'https://images.unsplash.com/photo-1558317374-067fb5f30001?w=800&auto=format&fit=crop&q=80'
+        ],
+        preco_custo: 38.00,
+        preco_venda: 79.90,
+        preco_anterior: 129.90,
+        margem_estimada: 41.90,
+        link_checkout_kaiross: 'https://kaiross.com/checkout/aspirador-portatil-turbo-sem-fio?ref=conectstore',
+        status: 'pausado',
+        destaque: true,
+        secao_destaque: 'ofertas',
+        ordem: 3,
+        etiqueta_oferta: '38% OFF REAL',
+        especificacoes: [{ chave: 'Potência', valor: '120W' }],
+        beneficios: ['Sem fios e portátil'],
+        cliques: 0
+      },
+      {
+        id: '44444444-4444-4444-a444-444444444444',
+        nome: 'Fone de Ouvido Bluetooth Sem Fio TWS com Case Display LED de Bateria',
+        slug: 'fone-ouvido-bluetooth-tws-display-led',
+        descricao_curta: 'Som estéreo imersivo, redução de ruído e estojo com mostrador de carga digital.',
+        descricao_completa: 'Liberdade total com áudio de alta definição. O fone Bluetooth TWS entrega graves potentes, pareamento instantâneo via Bluetooth 5.3 e comandos sensíveis ao toque.',
+        categoria: 'Tecnologia e eletrônicos',
+        imagens: [
+          'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=800&auto=format&fit=crop&q=80'
+        ],
+        preco_custo: 26.00,
+        preco_venda: 59.90,
+        preco_anterior: 99.90,
+        margem_estimada: 33.90,
+        link_checkout_kaiross: 'https://kaiross.com/checkout/fone-bluetooth-tws-led?ref=conectstore',
+        status: 'pausado',
+        destaque: true,
+        secao_destaque: 'populares',
+        ordem: 4,
+        etiqueta_oferta: 'CAMPEÃO DE VENDAS',
+        especificacoes: [{ chave: 'Bluetooth', valor: '5.3' }],
+        beneficios: ['Display numérico digital'],
+        cliques: 0
+      }
+    ];
+
+    // Helper para inicializar cliente Supabase no navegador
+    function getSupabase() {
+      try {
+        const stored = localStorage.getItem('conect_supabase_config');
+        if (stored) {
+          const cfg = JSON.parse(stored);
+          if (cfg.url && cfg.anonKey && window.supabase) {
+            return window.supabase.createClient(cfg.url, cfg.anonKey);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return null;
+    }
+
+    function App() {
+      const [products, setProducts] = useState(() => {
+        try {
+          const saved = localStorage.getItem('conect_store_products_v2');
+          return saved ? JSON.parse(saved) : DEMO_PRODUCTS;
+        } catch {
+          return DEMO_PRODUCTS;
+        }
+      });
+
+      const [realClicksTotal, setRealClicksTotal] = useState(0);
+      const [searchTerm, setSearchTerm] = useState('');
+      const [selectedCategory, setSelectedCategory] = useState(null);
+      const [currentView, setCurrentView] = useState('home');
+      const [activeProductSlug, setActiveProductSlug] = useState(null);
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [adminEmail, setAdminEmail] = useState(null);
+      const [modalLegal, setModalLegal] = useState(null);
+
+      // Carregar dados remotos do Supabase se configurado
+      const syncFromSupabase = async () => {
+        const sb = getSupabase();
+        if (sb) {
+          try {
+            // Verificar sessão
+            const { data: { user } } = await sb.auth.getUser();
+            if (user) {
+              const { data: adminRow } = await sb.from('admin_users').select('user_id').eq('user_id', user.id).maybeSingle();
+              if (adminRow) {
+                setIsAdmin(true);
+                setAdminEmail(user.email);
+              }
+            }
+
+            // Consultar produtos
+            const { data: prods, error: pErr } = await sb.from('products').select('*').order('ordem', { ascending: true });
+            if (!pErr && prods && prods.length > 0) {
+              setProducts(prods);
+              localStorage.setItem('conect_store_products_v2', JSON.stringify(prods));
+            }
+
+            // Contar cliques reais
+            const { count } = await sb.from('click_events').select('*', { count: 'exact', head: true });
+            if (count !== null) setRealClicksTotal(count);
+          } catch (err) {
+            console.warn('Sync Supabase:', err);
+          }
+        }
+      };
+
+      useEffect(() => {
+        syncFromSupabase();
+      }, []);
+
+      useEffect(() => {
+        try {
+          localStorage.setItem('conect_store_products_v2', JSON.stringify(products));
+        } catch (e) {}
+      }, [products]);
+
+      // Registro real de cliques e redirecionamento Kaiross
+      const handleBuyNow = async (product, e) => {
+        if (e) e.stopPropagation();
+
+        // 1. Registrar em click_events no Supabase ou local
+        const sb = getSupabase();
+        if (sb) {
+          sb.rpc('record_click', { p_product_id: product.id, p_source: 'storefront' }).catch(() => {
+            sb.from('click_events').insert({ product_id: product.id, source: 'storefront' }).catch(() => {});
+          });
+        }
+
+        // Atualizar estado local
+        setRealClicksTotal(prev => prev + 1);
+        setProducts(prev => prev.map(p => p.id === product.id ? { ...p, cliques: (p.cliques || 0) + 1 } : p));
+
+        // 2. Abrir link individual cadastrado em nova aba
+        if (product.link_checkout_kaiross) {
+          window.open(product.link_checkout_kaiross, '_blank', 'noopener,noreferrer');
+        } else {
+          alert('Link Kaiross não configurado para este produto.');
+        }
+      };
+
+      const navigateToDetail = (slug) => {
+        setActiveProductSlug(slug);
+        setCurrentView('detail');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const navigateToHome = () => {
+        setCurrentView('home');
+        setActiveProductSlug(null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const navigateToAdmin = () => {
+        setCurrentView('admin');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+
+      const activeProducts = products.filter(p => p.status === 'ativo');
+      const activeProduct = products.find(p => p.slug === activeProductSlug);
+
+      const stats = {
+        total: products.length,
+        ativos: activeProducts.length,
+        pausados: products.filter(p => p.status === 'pausado').length,
+        cliques: realClicksTotal,
+        margemMedia: products.length > 0 ? (products.reduce((acc, p) => acc + (p.margem_estimada || 0), 0) / products.length) : 0
+      };
+
+      return (
+        <div className="min-h-screen flex flex-col bg-[#F5F5F5] text-[#171717]">
+          {/* Top Micro Banner */}
+          <div className="bg-gradient-to-r from-[#FF681B] via-[#FF8A3D] to-[#FFD43B] text-[#171717] py-1.5 px-4 text-xs font-bold text-center tracking-wide flex items-center justify-center gap-2">
+            <span>🔥 ACHADINHOS EXCLUSIVOS &bull; OFERTAS COM ATÉ 60% OFF &bull; CHECKOUT SEGURO KAIROSS</span>
+          </div>
+
+          {/* Header */}
+          <header className="sticky top-0 z-40 bg-[#171717] text-white shadow-lg border-b border-[#262626]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-20 gap-4">
+                
+                {/* Logo e Slogan */}
+                <div onClick={navigateToHome} className="flex items-center gap-3 cursor-pointer select-none">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FF681B] to-[#FFD43B] flex items-center justify-center shadow-brand text-2xl font-black text-[#171717]">
+                    ⚡
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xl sm:text-2xl font-extrabold tracking-tight leading-none text-white flex items-center gap-1.5">
+                      CONECT <span className="text-[#FF681B]">STORE</span>
+                      <span className="text-[10px] font-bold bg-[#FFD43B] text-[#171717] px-1.5 py-0.5 rounded-md uppercase ml-1">
+                        OFERTAS 2.0
+                      </span>
+                    </span>
+                    <span className="text-xs text-gray-300 font-medium mt-0.5">
+                      Achou, gostou, aproveitou!
+                    </span>
+                  </div>
+                </div>
+
+                {/* Busca Desktop */}
+                <div className="hidden md:flex flex-1 max-w-xl mx-4">
+                  <div className="relative w-full">
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        if (currentView !== 'home') navigateToHome();
+                      }}
+                      placeholder="Buscar achadinhos, novidades, ofertas..."
+                      className="w-full bg-[#262626] text-white placeholder-gray-400 pl-11 pr-10 py-2.5 rounded-full border border-gray-700 focus:outline-none focus:border-[#FF681B] text-sm"
+                    />
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                    {searchTerm && (
+                      <button onClick={() => setSearchTerm('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">✕</button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ações */}
+                <div className="flex items-center gap-3">
+                  <div className="hidden lg:flex items-center gap-1.5 text-xs text-gray-300 bg-[#222222] border border-gray-800 px-3 py-1.5 rounded-full">
+                    <span>🛡️ Checkout Oficial <strong>Kaiross</strong></span>
+                  </div>
+
+                  <button
+                    onClick={navigateToAdmin}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
+                      currentView === 'admin'
+                        ? 'bg-[#FF681B] text-white border-[#FF681B]'
+                        : 'bg-[#222222] text-gray-300 hover:text-white border-gray-700'
+                    }`}
+                  >
+                    <span>🔒 {isAdmin ? 'Painel Admin' : 'Admin'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Busca Mobile */}
+              <div className="md:hidden pb-3">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    if (currentView !== 'home') navigateToHome();
+                  }}
+                  placeholder="Buscar ofertas e achadinhos..."
+                  className="w-full bg-[#262626] text-white placeholder-gray-400 px-4 py-2 rounded-full border border-gray-700 text-sm focus:outline-none focus:border-[#FF681B]"
+                />
+              </div>
+
+              {/* Categorias */}
+              <nav className="hidden md:flex items-center justify-center gap-1 py-2.5 border-t border-[#262626] text-xs font-medium overflow-x-auto">
+                <button
+                  onClick={() => { setSelectedCategory(null); navigateToHome(); }}
+                  className={`px-3.5 py-1.5 rounded-full transition whitespace-nowrap ${
+                    selectedCategory === null ? 'bg-[#FF681B] text-white font-bold' : 'text-gray-300 hover:text-white hover:bg-[#262626]'
+                  }`}
+                >
+                  Todos os Produtos
+                </button>
+                {INITIAL_CATEGORIES.map(c => (
+                  <button
+                    key={c.slug}
+                    onClick={() => { setSelectedCategory(c.nome); navigateToHome(); }}
+                    className={`px-3.5 py-1.5 rounded-full transition whitespace-nowrap ${
+                      selectedCategory === c.nome ? 'bg-[#FF681B] text-white font-bold' : 'text-gray-300 hover:text-white hover:bg-[#262626]'
+                    }`}
+                  >
+                    {c.nome}
+                  </button>
+                ))}
+              </nav>
+            </div>
+          </header>
+
+          {/* MAIN CONTENT ROUTING */}
+          <main className="flex-1">
+            {currentView === 'home' && (
+              <HomeView
+                products={activeProducts}
+                totalAllProducts={products.length}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                navigateToDetail={navigateToDetail}
+                navigateToAdmin={navigateToAdmin}
+                handleBuyNow={handleBuyNow}
+              />
+            )}
+
+            {currentView === 'detail' && (
+              <DetailView
+                product={activeProduct}
+                navigateToHome={navigateToHome}
+                handleBuyNow={handleBuyNow}
+              />
+            )}
+
+            {currentView === 'admin' && (
+              <AdminView
+                products={products}
+                setProducts={setProducts}
+                stats={stats}
+                isAdmin={isAdmin}
+                setIsAdmin={setIsAdmin}
+                adminEmail={adminEmail}
+                setAdminEmail={setAdminEmail}
+                navigateToHome={navigateToHome}
+              />
+            )}
+          </main>
+
+          {/* Footer */}
+          {currentView !== 'admin' && (
+            <footer className="bg-[#171717] text-white pt-12 pb-8 border-t border-[#262626] mt-auto">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="mb-10 p-5 rounded-2xl bg-[#222222] border border-[#333333] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                      <span>🛡️ Aviso de Transparência e Isenção de Responsabilidade Comercial</span>
+                      <span className="text-[10px] bg-[#FFD43B] text-[#171717] px-2 py-0.5 rounded font-black uppercase">Transparência</span>
+                    </h4>
+                    <p className="text-xs text-gray-400 max-w-3xl leading-relaxed">
+                      A <strong>CONECT STORE OFERTAS</strong> atua exclusivamente como vitrine de curadoria e ofertas. Os pedidos, pagamentos e emissões fiscais são processados na infraestrutura segura da plataforma <strong>Kaiross</strong>. A loja pode receber remuneração por compras realizadas por esses links sem custo adicional para você.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setModalLegal('afiliados')}
+                    className="text-xs font-bold text-[#FFD43B] hover:text-white underline whitespace-nowrap"
+                  >
+                    Saiba mais
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-[#262626] text-xs">
+                  <div className="space-y-3">
+                    <span className="text-lg font-black text-white">CONECT <span className="text-[#FF681B]">STORE</span></span>
+                    <p className="text-[#FFD43B] font-bold">"Achou, gostou, aproveitou!"</p>
+                    <p className="text-gray-400">Curadoria especializada em novidades e produtos úteis para facilitar o seu dia a dia.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-bold uppercase tracking-wider text-white">Atendimento</h4>
+                    <p className="text-gray-300">WhatsApp: (11) 98765-4321</p>
+                    <p className="text-gray-300">contato@conectstoreofertas.com</p>
+                    <p className="text-gray-400">Seg. a Sex. das 09h às 18h</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-bold uppercase tracking-wider text-white">Institucional</h4>
+                    <p><button onClick={() => setModalLegal('afiliados')} className="hover:text-[#FF681B]">Política de Afiliados</button></p>
+                    <p><button onClick={() => setModalLegal('privacidade')} className="hover:text-[#FF681B]">Privacidade & LGPD</button></p>
+                    <p><button onClick={() => setModalLegal('termos')} className="hover:text-[#FF681B]">Termos de Uso</button></p>
+                    <p><button onClick={navigateToAdmin} className="text-gray-400 hover:text-[#FFD43B]">🔒 Painel Administrativo</button></p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h4 className="font-bold uppercase tracking-wider text-white">Redes Sociais</h4>
+                    <p className="text-gray-400">Acompanhe nossas novidades:</p>
+                    <div className="flex gap-2">
+                      <span className="px-2.5 py-1 bg-[#262626] rounded text-gray-200">Instagram</span>
+                      <span className="px-2.5 py-1 bg-[#262626] rounded text-gray-200">TikTok</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-400 gap-2">
+                  <p>&copy; {new Date().getFullYear()} CONECT STORE OFERTAS. Todos os direitos reservados.</p>
+                  <p>Ambiente Oficial Kaiross &bull; Supabase RLS Protected</p>
+                </div>
+              </div>
+            </footer>
+          )}
+
+          {/* Modal Legal */}
+          {modalLegal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+              <div className="bg-white rounded-3xl max-w-lg w-full p-6 text-xs text-gray-600 space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b">
+                  <h3 className="text-base font-extrabold text-[#171717] uppercase">
+                    {modalLegal === 'afiliados' && 'Política de Afiliados Kaiross'}
+                    {modalLegal === 'privacidade' && 'Privacidade & LGPD'}
+                    {modalLegal === 'termos' && 'Termos de Uso'}
+                  </h3>
+                  <button onClick={() => setModalLegal(null)} className="font-bold text-gray-400 hover:text-black">✕</button>
+                </div>
+                <p>
+                  A <strong>CONECT STORE OFERTAS</strong> é uma vitrine de ofertas. Ao clicar em <strong>"COMPRAR AGORA"</strong>, você é redirecionado para a plataforma oficial da <strong>Kaiross</strong> onde a transação é processada com segurança. A loja pode receber comissão por compras qualificadas sem nenhum custo adicional no preço do produto.
+                </p>
+                <div className="flex justify-end pt-2">
+                  <button onClick={() => setModalLegal(null)} className="px-4 py-2 bg-[#171717] text-white font-bold rounded-xl">
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // HOME VIEW
+    function HomeView({ products, totalAllProducts, searchTerm, setSearchTerm, selectedCategory, setSelectedCategory, navigateToDetail, navigateToAdmin, handleBuyNow }) {
+      const filtered = products.filter(p => {
+        const matchesSearch = !searchTerm || p.nome.toLowerCase().includes(searchTerm.toLowerCase()) || p.descricao_curta.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCat = !selectedCategory || p.categoria === selectedCategory;
+        return matchesSearch && matchesCat;
+      });
+
+      const isFiltering = Boolean(searchTerm || selectedCategory);
+
+      return (
+        <div>
+          {/* Banner Hero */}
+          <div className="bg-[#171717] text-white py-12 px-4 sm:px-8 border-b border-[#262626]">
+            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-7 space-y-4 text-center lg:text-left">
+                <span className="inline-block bg-[#FF681B]/20 text-[#FFD43B] border border-[#FF681B]/40 px-3.5 py-1 rounded-full text-xs font-bold">
+                  🔥 ACHOU, GOSTOU, APROVEITOU!
+                </span>
+                <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight">
+                  Os melhores <span className="text-[#FF681B] underline decoration-[#FFD43B]">achadinhos</span> e ofertas úteis da internet.
+                </h1>
+                <p className="text-sm sm:text-base text-gray-300 max-w-xl">
+                  Curadoria focada em produtos que transformam sua rotina. Descontos reais e checkout direto com garantia <strong>Kaiross</strong>.
+                </p>
+                <div className="pt-2 flex flex-wrap justify-center lg:justify-start gap-3">
+                  <a href="#ofertas-secao" className="px-6 py-3.5 bg-[#FF681B] hover:bg-[#e6560e] text-white font-extrabold rounded-2xl shadow-brand text-xs sm:text-sm">
+                    EXPLORAR OFERTAS
+                  </a>
+                </div>
+              </div>
+              <div className="lg:col-span-5 flex justify-center">
+                <div className="bg-[#222222] border-2 border-[#FF681B]/50 p-6 rounded-3xl max-w-sm w-full space-y-3 shadow-2xl">
+                  <span className="text-xs font-black bg-[#FFD43B] text-[#171717] px-2.5 py-0.5 rounded-full uppercase">⚡ COMPRA DIRETA KAIROSS</span>
+                  <h3 className="font-bold text-white text-base">Curadoria Conect Store</h3>
+                  <p className="text-xs text-gray-400">Preços comprovados, novidades testadas e compra com código de rastreamento direto no seu e-mail.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Categorias */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8">
+            <h2 className="text-xl font-extrabold text-[#171717] mb-4">Categorias em Destaque</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`p-3.5 rounded-2xl border text-center transition ${selectedCategory === null ? 'bg-[#FF681B] text-white font-bold shadow' : 'bg-white hover:border-[#FF681B]'}`}
+              >
+                <div className="text-2xl mb-1">📦</div>
+                <div className="text-xs font-bold">Todos</div>
+              </button>
+              {INITIAL_CATEGORIES.map(c => (
+                <button
+                  key={c.slug}
+                  onClick={() => setSelectedCategory(c.nome)}
+                  className={`p-3.5 rounded-2xl border text-center transition ${selectedCategory === c.nome ? 'bg-[#FF681B] text-white font-bold shadow' : 'bg-white hover:border-[#FF681B]'}`}
+                >
+                  <div className="text-2xl mb-1">
+                    {c.icone === 'sparkles' && '✨'}
+                    {c.icone === 'utensils' && '🍳'}
+                    {c.icone === 'cpu' && '⚡'}
+                    {c.icone === 'car' && '🚗'}
+                    {c.icone === 'package-check' && '🛠️'}
+                  </div>
+                  <div className="text-xs font-bold line-clamp-1">{c.nome}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Produtos ou Estado de Auditoria Limpo */}
+          <div id="ofertas-secao" className="max-w-7xl mx-auto px-4 sm:px-8 pb-12">
+            {isFiltering ? (
+              <div>
+                <div className="flex justify-between items-center mb-6 border-b pb-3">
+                  <h3 className="text-xl font-extrabold">Resultados ({filtered.length})</h3>
+                  <button onClick={() => { setSearchTerm(''); setSelectedCategory(null); }} className="text-xs text-[#FF681B] font-bold">Limpar Filtros</button>
+                </div>
+                {filtered.length === 0 ? (
+                  <div className="bg-white p-8 rounded-2xl text-center text-gray-500">Nenhum produto ativo encontrado nesta busca.</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {filtered.map(p => (
+                      <ProductCardItem key={p.id} product={p} onOpenDetail={navigateToDetail} onBuy={handleBuyNow} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : products.length === 0 ? (
+              <div className="max-w-xl mx-auto bg-white p-8 rounded-3xl border border-gray-200 text-center space-y-4 my-8 shadow-sm">
+                <div className="w-12 h-12 bg-orange-50 text-[#FF681B] rounded-2xl flex items-center justify-center mx-auto text-2xl">✨</div>
+                <h3 className="text-lg font-extrabold text-[#171717]">Novos Achadinhos em Preparação</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Para garantir total transparência e cumprir as regras comerciais, nossos produtos estão em fase de conferência de links individuais de checkout e estoque na Kaiross.
+                </p>
+                <div className="pt-2">
+                  <button onClick={navigateToAdmin} className="px-5 py-2.5 bg-[#FF681B] text-white text-xs font-bold rounded-xl shadow-brand">
+                    Acessar Painel para Ativar Produtos
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-2xl font-extrabold text-[#171717] mb-4">Achadinhos e Ofertas Imperdíveis</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {products.map(p => (
+                      <ProductCardItem key={p.id} product={p} onOpenDetail={navigateToDetail} onBuy={handleBuyNow} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // CARD DE PRODUTO
+    function ProductCardItem({ product, onOpenDetail, onBuy }) {
+      const discount = product.preco_anterior && product.preco_anterior > product.preco_venda
+        ? Math.round(((product.preco_anterior - product.preco_venda) / product.preco_anterior) * 100)
+        : null;
+
+      return (
+        <div
+          onClick={() => onOpenDetail(product.slug)}
+          className="bg-white rounded-3xl border border-gray-200 hover:border-[#FF681B] shadow-sm hover:shadow-card-hover transition duration-300 flex flex-col overflow-hidden cursor-pointer group"
+        >
+          <div className="relative aspect-square w-full bg-gray-100 overflow-hidden">
+            <img
+              src={product.imagens?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'}
+              alt={product.nome}
+              className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+            />
+            {product.etiqueta_oferta && (
+              <span className="absolute top-3 left-3 bg-[#FF681B] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase shadow">
+                {product.etiqueta_oferta}
+              </span>
+            )}
+            {discount && (
+              <span className="absolute top-3 right-3 bg-[#FFD43B] text-[#171717] text-[10px] font-black px-2 py-0.5 rounded-full shadow">
+                -{discount}% OFF
+              </span>
+            )}
+          </div>
+
+          <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+            <div>
+              <p className="text-[10px] font-bold text-[#FF681B] uppercase">{product.categoria}</p>
+              <h3 className="font-bold text-sm text-[#171717] group-hover:text-[#FF681B] transition line-clamp-2 leading-snug">
+                {product.nome}
+              </h3>
+              <p className="text-xs text-gray-500 line-clamp-2 mt-1">{product.descricao_curta}</p>
+            </div>
+
+            <div className="pt-2 border-t border-gray-100">
+              {product.preco_anterior && (
+                <div className="text-[11px] text-gray-400 line-through">
+                  R$ {product.preco_anterior.toFixed(2).replace('.', ',')}
+                </div>
+              )}
+              <div className="text-xl font-black text-[#171717]">
+                R$ {product.preco_venda.toFixed(2).replace('.', ',')}
+              </div>
+              <span className="text-[10px] text-gray-400">em até 12x no checkout</span>
+
+              <button
+                type="button"
+                onClick={(e) => onBuy(product, e)}
+                className="w-full mt-3 py-2.5 bg-[#FF681B] hover:bg-[#e6560e] text-white font-black text-xs rounded-xl shadow-brand transition flex items-center justify-center gap-1.5"
+              >
+                <span>COMPRAR AGORA</span>
+                <span>↗</span>
+              </button>
+              <div className="text-[9px] text-gray-400 text-center mt-1">Ambiente Oficial <strong>Kaiross</strong></div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // PÁGINA INDIVIDUAL
+    function DetailView({ product, navigateToHome, handleBuyNow }) {
+      if (!product) return <div className="p-12 text-center">Produto não encontrado. <button onClick={navigateToHome} className="text-[#FF681B] font-bold">Voltar</button></div>;
+
+      const [selectedImg, setSelectedImg] = useState(0);
+      const images = product.imagens || [];
+
+      return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-8">
+          <button onClick={navigateToHome} className="text-xs font-bold text-gray-600 hover:text-[#FF681B] flex items-center gap-1">
+            ← Voltar para as ofertas
+          </button>
+
+          <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-10 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-6 space-y-4">
+              <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 border">
+                <img src={images[selectedImg] || images[0]} alt={product.nome} className="w-full h-full object-cover" />
+              </div>
+              {images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto">
+                  {images.map((img, i) => (
+                    <button key={i} onClick={() => setSelectedImg(i)} className={`w-16 h-16 rounded-xl overflow-hidden border-2 ${selectedImg === i ? 'border-[#FF681B]' : 'border-gray-200'}`}>
+                      <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-6 space-y-4">
+              <span className="text-xs font-bold text-[#FF681B] bg-orange-50 px-2.5 py-1 rounded-md uppercase">{product.categoria}</span>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-[#171717]">{product.nome}</h1>
+              <p className="text-sm text-gray-600 leading-relaxed">{product.descricao_curta}</p>
+
+              <div className="p-4 bg-gray-50 rounded-2xl border space-y-1">
+                {product.preco_anterior && (
+                  <span className="text-xs text-gray-400 line-through">De: R$ {product.preco_anterior.toFixed(2).replace('.', ',')}</span>
+                )}
+                <div className="text-3xl font-black text-[#171717]">
+                  Por R$ {product.preco_venda.toFixed(2).replace('.', ',')}
+                </div>
+                <span className="text-xs text-gray-500">em até 12x no cartão ou Pix no checkout</span>
+              </div>
+
+              <button
+                onClick={(e) => handleBuyNow(product, e)}
+                className="w-full py-4 bg-[#FF681B] hover:bg-[#e6560e] text-white font-black text-base rounded-2xl shadow-brand transition flex items-center justify-center gap-2"
+              >
+                <span>COMPRAR AGORA NO CHECKOUT KAIROSS</span>
+                <span>↗</span>
+              </button>
+
+              <div className="p-3 bg-[#222222] text-white rounded-xl text-center text-xs">
+                🛡️ Transação 100% segura e processada no ambiente oficial <strong>Kaiross</strong>.
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ADMIN VIEW COM SUPABASE AUTH & ADMIN_USERS
+    function AdminView({ products, setProducts, stats, isAdmin, setIsAdmin, adminEmail, setAdminEmail, navigateToHome }) {
+      const [emailInput, setEmailInput] = useState('');
+      const [passInput, setPassInput] = useState('');
+      const [loginError, setLoginError] = useState(null);
+      const [loadingAuth, setLoadingAuth] = useState(false);
+      const [supabaseConfig, setSupabaseConfig] = useState(() => {
+        try {
+          return JSON.parse(localStorage.getItem('conect_supabase_config') || '{"url":"","anonKey":""}');
+        } catch {
+          return { url: '', anonKey: '' };
+        }
+      });
+      const [configMessage, setConfigMessage] = useState(null);
+      const [modalEdit, setModalEdit] = useState(false);
+      const [editingProd, setEditingProd] = useState(null);
+
+      const handleSaveSupabaseConfig = (e) => {
+        e.preventDefault();
+        setConfigMessage(null);
+
+        try {
+          const url = new URL(supabaseConfig.url.trim());
+          if (url.protocol !== 'https:' && url.hostname !== 'localhost') {
+            setConfigMessage('A URL deve usar HTTPS (ou localhost para testes).');
+            return;
+          }
+          if (!supabaseConfig.anonKey.trim()) {
+            setConfigMessage('Informe a chave pública anon/publishable do Supabase.');
+            return;
+          }
+
+          localStorage.setItem('conect_supabase_config', JSON.stringify({
+            url: url.origin,
+            anonKey: supabaseConfig.anonKey.trim()
+          }));
+          setSupabaseConfig({ url: url.origin, anonKey: supabaseConfig.anonKey.trim() });
+          setConfigMessage('Configuração salva. Agora tente entrar com seu usuário administrador.');
+        } catch {
+          setConfigMessage('Informe uma URL válida do projeto Supabase, por exemplo https://seu-projeto.supabase.co.');
+        }
+      };
+
+      const handleLogin = async (e) => {
+        e.preventDefault();
+        setLoginError(null);
+        setLoadingAuth(true);
+
+        const sb = getSupabase();
+        if (!sb) {
+          setLoginError('Configure o Supabase primeiro informando a URL e Chave Anon.');
+          setLoadingAuth(false);
+          return;
+        }
+
+        try {
+          const { data, error } = await sb.auth.signInWithPassword({
+            email: emailInput.trim(),
+            password: passInput
+          });
+
+          if (error) {
+            setLoginError(error.message);
+            setLoadingAuth(false);
+            return;
+          }
+
+          if (data?.user) {
+            // Verificar tabela admin_users
+            const { data: adminRow, error: adminError } = await sb.from('admin_users').select('user_id').eq('user_id', data.user.id).maybeSingle();
+            if (adminError) {
+              await sb.auth.signOut();
+              setLoginError(`Não foi possível verificar a permissão de administrador: ${adminError.message}`);
+              setLoadingAuth(false);
+              return;
+            }
+            if (!adminRow) {
+              await sb.auth.signOut();
+              setLoginError(`Acesso negado. UUID autenticado: ${data.user.id}. No SQL Editor do mesmo projeto Supabase, execute: INSERT INTO public.admin_users (user_id) VALUES ('${data.user.id}') ON CONFLICT (user_id) DO NOTHING;`);
+              setLoadingAuth(false);
+              return;
+            }
+
+            setIsAdmin(true);
+            setAdminEmail(data.user.email);
+          }
+        } catch (err) {
+          setLoginError(err.message);
+        } finally {
+          setLoadingAuth(false);
+        }
+      };
+
+      if (!isAdmin) {
+        return (
+          <div className="min-h-[80vh] flex items-center justify-center p-4">
+            <div className="bg-[#171717] text-white p-8 rounded-3xl max-w-sm w-full border border-gray-800 space-y-4 text-center">
+              <span className="text-3xl">🔒</span>
+              <h2 className="text-xl font-bold">Painel Administrativo 2.0</h2>
+              <p className="text-xs text-gray-400">Protegido por Supabase Auth & admin_users</p>
+
+              {!getSupabase() && (
+                <form onSubmit={handleSaveSupabaseConfig} className="space-y-2 text-left bg-[#262626] border border-gray-700 rounded-xl p-3">
+                  <p className="text-xs font-bold text-amber-300">Configure a conexão com o Supabase</p>
+                  <input
+                    type="url"
+                    required
+                    placeholder="https://seu-projeto.supabase.co"
+                    value={supabaseConfig.url}
+                    onChange={e => setSupabaseConfig({ ...supabaseConfig, url: e.target.value })}
+                    className="w-full bg-[#171717] border border-gray-700 px-3 py-2 text-xs rounded-lg text-white"
+                  />
+                  <input
+                    type="password"
+                    required
+                    placeholder="Chave pública anon/publishable (não use service_role)"
+                    value={supabaseConfig.anonKey}
+                    onChange={e => setSupabaseConfig({ ...supabaseConfig, anonKey: e.target.value })}
+                    className="w-full bg-[#171717] border border-gray-700 px-3 py-2 text-xs rounded-lg text-white"
+                    autoComplete="off"
+                  />
+                  {configMessage && <p className="text-xs text-amber-200">{configMessage}</p>}
+                  <button type="submit" className="w-full py-2 bg-amber-400 text-black font-bold text-xs rounded-lg">
+                    Salvar configuração
+                  </button>
+                </form>
+              )}
+              
+              <form onSubmit={handleLogin} className="space-y-3 text-left">
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-gray-400">E-mail</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="admin@conectstore.com"
+                    value={emailInput}
+                    onChange={e => setEmailInput(e.target.value)}
+                    className="w-full bg-[#262626] border border-gray-700 px-3 py-2 text-xs rounded-xl text-white focus:outline-none focus:border-[#FF681B] mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold text-gray-400">Senha</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={passInput}
+                    onChange={e => setPassInput(e.target.value)}
+                    className="w-full bg-[#262626] border border-gray-700 px-3 py-2 text-xs rounded-xl text-white focus:outline-none focus:border-[#FF681B] mt-1"
+                  />
+                </div>
+                {loginError && <p className="text-xs text-red-400 p-2 bg-red-950/40 rounded-lg">{loginError}</p>}
+                <button
+                  type="submit"
+                  disabled={loadingAuth}
+                  className="w-full py-2.5 bg-[#FF681B] text-white font-bold text-xs rounded-xl shadow-brand disabled:opacity-50"
+                >
+                  {loadingAuth ? 'Autenticando...' : 'Entrar com Supabase'}
+                </button>
+              </form>
+
+              <button onClick={navigateToHome} className="text-xs text-gray-400 hover:text-white pt-2 block mx-auto">
+                Voltar para a Loja
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      const handleSave = async (e) => {
+        e.preventDefault();
+        const sb = getSupabase();
+        if (sb) {
+          await sb.from('products').upsert(editingProd);
+        }
+        const updated = products.some(p => p.id === editingProd.id)
+          ? products.map(p => p.id === editingProd.id ? editingProd : p)
+          : [editingProd, ...products];
+        setProducts(updated);
+        setModalEdit(false);
+      };
+
+      const handleToggle = async (id) => {
+        const prod = products.find(p => p.id === id);
+        if (!prod) return;
+        const newStatus = prod.status === 'ativo' ? 'pausado' : 'ativo';
+        const updatedProd = { ...prod, status: newStatus };
+        const sb = getSupabase();
+        if (sb) {
+          await sb.from('products').update({ status: newStatus }).eq('id', id);
+        }
+        setProducts(products.map(p => p.id === id ? updatedProd : p));
+      };
+
+      const handleDelete = async (id) => {
+        if (confirm('Excluir este produto?')) {
+          const sb = getSupabase();
+          if (sb) {
+            await sb.from('products').delete().eq('id', id);
+          }
+          setProducts(products.filter(p => p.id !== id));
+        }
+      };
+
+      return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-8 space-y-6">
+          <div className="flex justify-between items-center bg-white p-5 rounded-2xl border">
+            <div>
+              <h2 className="text-xl font-black text-[#171717]">Painel Administrativo Conect Store 2.0</h2>
+              <p className="text-xs text-gray-500">Logado como: <strong>{adminEmail}</strong> &bull; RLS Habilitado</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setEditingProd({
+                    id: crypto.randomUUID ? crypto.randomUUID() : 'prod-' + Date.now(),
+                    nome: '',
+                    slug: '',
+                    descricao_curta: '',
+                    descricao_completa: '',
+                    categoria: 'Casa e cozinha',
+                    imagens: [],
+                    preco_custo: 0,
+                    preco_venda: 0,
+                    preco_anterior: null,
+                    margem_estimada: 0,
+                    link_checkout_kaiross: '',
+                    status: 'pausado',
+                    destaque: false,
+                    secao_destaque: 'achadinhos',
+                    ordem: products.length + 1,
+                    etiqueta_oferta: 'OFERTA'
+                  });
+                  setModalEdit(true);
+                }}
+                className="px-4 py-2 bg-[#FF681B] text-white text-xs font-bold rounded-xl"
+              >
+                + Novo Produto
+              </button>
+              <button
+                onClick={async () => {
+                  const sb = getSupabase();
+                  if (sb) await sb.auth.signOut();
+                  setIsAdmin(false);
+                  setAdminEmail(null);
+                }}
+                className="px-3 py-2 bg-gray-200 text-xs font-bold rounded-xl"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+
+          {/* KPIs Reais */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-2xl border">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Produtos Ativos</span>
+              <div className="text-2xl font-black text-green-600">{stats.ativos}</div>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Produtos Pausados</span>
+              <div className="text-2xl font-black text-gray-500">{stats.pausados}</div>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Cliques Reais</span>
+              <div className="text-2xl font-black text-[#FF681B]">{stats.cliques}</div>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border">
+              <span className="text-[10px] font-bold text-gray-400 uppercase">Margem Média Kaiross</span>
+              <div className="text-2xl font-black text-[#171717]">R$ {stats.margemMedia.toFixed(2).replace('.', ',')}</div>
+            </div>
+          </div>
+
+          {/* Tabela de Produtos */}
+          <div className="bg-white rounded-2xl border overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-gray-50 border-b text-[10px] text-gray-500 uppercase">
+                <tr>
+                  <th className="p-3">Nome</th>
+                  <th className="p-3">Categoria</th>
+                  <th className="p-3">Preço Venda</th>
+                  <th className="p-3">Custo / Margem Est.</th>
+                  <th className="p-3 text-center">Status</th>
+                  <th className="p-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {products.map(p => (
+                  <tr key={p.id} className="hover:bg-gray-50">
+                    <td className="p-3 font-bold text-[#171717]">{p.nome}</td>
+                    <td className="p-3">{p.categoria}</td>
+                    <td className="p-3 font-bold">R$ {p.preco_venda.toFixed(2).replace('.', ',')}</td>
+                    <td className="p-3 text-gray-500">Custo: R$ {p.preco_custo} | Margem: R$ {p.margem_estimada}</td>
+                    <td className="p-3 text-center">
+                      <button onClick={() => handleToggle(p.id)} className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${p.status === 'ativo' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                        {p.status}
+                      </button>
+                    </td>
+                    <td className="p-3 text-right space-x-2">
+                      <button onClick={() => { setEditingProd({ ...p }); setModalEdit(true); }} className="text-[#FF681B] font-bold">Editar</button>
+                      <button onClick={() => handleDelete(p.id)} className="text-red-500 font-bold">Excluir</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Modal Edição */}
+          {modalEdit && editingProd && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+              <div className="bg-white rounded-3xl max-w-lg w-full p-6 text-xs space-y-3 max-h-[90vh] overflow-y-auto">
+                <h3 className="text-base font-bold text-[#171717]">Gerenciar Produto</h3>
+                <form onSubmit={handleSave} className="space-y-3">
+                  <div>
+                    <label className="font-bold">Nome do Produto</label>
+                    <input required value={editingProd.nome} onChange={e => setEditingProd({ ...editingProd, nome: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-') })} className="w-full border p-2 rounded-xl mt-1" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="font-bold">Categoria</label>
+                      <select value={editingProd.categoria} onChange={e => setEditingProd({ ...editingProd, categoria: e.target.value })} className="w-full border p-2 rounded-xl mt-1">
+                        {INITIAL_CATEGORIES.map(c => <option key={c.slug} value={c.nome}>{c.nome}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="font-bold">Status</label>
+                      <select value={editingProd.status} onChange={e => setEditingProd({ ...editingProd, status: e.target.value })} className="w-full border p-2 rounded-xl mt-1">
+                        <option value="pausado">Pausado (Em auditoria)</option>
+                        <option value="ativo">Ativo (Publicado)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="font-bold">Preço Venda (R$)</label>
+                      <input type="number" step="0.01" required value={editingProd.preco_venda} onChange={e => setEditingProd({ ...editingProd, preco_venda: parseFloat(e.target.value) || 0 })} className="w-full border p-2 rounded-xl mt-1" />
+                    </div>
+                    <div>
+                      <label className="font-bold">Preço Custo (R$)</label>
+                      <input type="number" step="0.01" value={editingProd.preco_custo} onChange={e => setEditingProd({ ...editingProd, preco_custo: parseFloat(e.target.value) || 0 })} className="w-full border p-2 rounded-xl mt-1" />
+                    </div>
+                    <div>
+                      <label className="font-bold">Margem Kaiross</label>
+                      <input type="number" step="0.01" value={editingProd.margem_estimada} onChange={e => setEditingProd({ ...editingProd, margem_estimada: parseFloat(e.target.value) || 0 })} className="w-full border p-2 rounded-xl mt-1" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="font-bold">Link Individual Kaiross</label>
+                    <input required value={editingProd.link_checkout_kaiross} onChange={e => setEditingProd({ ...editingProd, link_checkout_kaiross: e.target.value })} className="w-full border p-2 rounded-xl mt-1" />
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <button type="button" onClick={() => setModalEdit(false)} className="px-4 py-2 bg-gray-200 font-bold rounded-xl">Cancelar</button>
+                    <button type="submit" className="px-5 py-2 bg-[#FF681B] text-white font-bold rounded-xl">Salvar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
